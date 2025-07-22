@@ -1,13 +1,22 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 from datetime import datetime
 import uuid
+
+class Citation(BaseModel):
+    """Citation model for document generation"""
+    id: int = Field(..., description="Citation number/identifier")
+    text: str = Field(..., description="Citation preview text")
+    source: str = Field(..., description="Source document filename")
+    page: int = Field(..., description="Page number in source document")
+    chunk_id: str = Field(..., description="Unique chunk identifier")
 
 class GeneratedSection(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     title: str
     content: str
     source_count: int
+    citations: Optional[List[Citation]] = Field(default=[], description="Citations used in this section")
 
 class GeneratedDocument(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))

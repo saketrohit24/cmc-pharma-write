@@ -22,7 +22,7 @@ from app.models.chat import (
 )
 from app.services.generation_service import GenerationService
 from app.services.rag_service import RAGService
-from app.services.graph_rag_service import RAGConfig
+# from app.services.graph_rag_service import RAGConfig  # Temporarily disabled
 from app.core.config import settings
 
 
@@ -64,15 +64,9 @@ class ChatService:
         # Configure GraphRAG if enabled (but don't initialize yet)
         self.graph_rag_config = None
         if settings.USE_GRAPH_RAG:
-            self.graph_rag_config = RAGConfig(
-                working_dir=settings.GRAPH_RAG_WORKING_DIR,
-                chunk_size=settings.GRAPH_RAG_CHUNK_SIZE,
-                chunk_overlap=settings.GRAPH_RAG_CHUNK_OVERLAP,
-                embedding_batch_num=settings.GRAPH_RAG_EMBEDDING_BATCH_NUM,
-                max_async=settings.GRAPH_RAG_MAX_ASYNC,
-                global_max_consider_community=settings.GRAPH_RAG_GLOBAL_MAX_CONSIDER_COMMUNITY,
-                local_search_top_k=settings.GRAPH_RAG_LOCAL_SEARCH_TOP_K
-            )
+            print("GraphRAG is temporarily disabled due to dependency issues")
+            # Disable GraphRAG for now
+            pass
         
         # Initialize empty RAG service for fast startup
         self.rag_service = None  # Will be initialized on first use
@@ -410,20 +404,14 @@ class ChatService:
                 else:
                     # Reinitialize RAG service with found files
                     from app.services.rag_service import RAGService
-                    from app.services.graph_rag_service import RAGConfig
+                    # from app.services.graph_rag_service import RAGConfig  # Temporarily disabled
                     
-                    # Configure GraphRAG if enabled
+                    # Configure GraphRAG if enabled (disabled for now)
                     graph_rag_config = None
                     if settings.USE_GRAPH_RAG:
-                        graph_rag_config = RAGConfig(
-                            working_dir=settings.GRAPH_RAG_WORKING_DIR,
-                            chunk_size=settings.GRAPH_RAG_CHUNK_SIZE,
-                            chunk_overlap=settings.GRAPH_RAG_CHUNK_OVERLAP,
-                            embedding_batch_num=settings.GRAPH_RAG_EMBEDDING_BATCH_NUM,
-                            max_async=settings.GRAPH_RAG_MAX_ASYNC,
-                            global_max_consider_community=settings.GRAPH_RAG_GLOBAL_MAX_CONSIDER_COMMUNITY,
-                            local_search_top_k=settings.GRAPH_RAG_LOCAL_SEARCH_TOP_K
-                        )
+                        print("GraphRAG is temporarily disabled due to dependency issues")
+                        # Disable GraphRAG for now
+                        pass
                     
                     self.rag_service = RAGService(
                         file_paths=file_paths, 
@@ -505,8 +493,39 @@ class ChatService:
                     # Initialize RAG service if needed (lazy loading)
                     await self._ensure_rag_initialized()
                     
-                    if self.rag_service and hasattr(self.rag_service, 'get_relevant_chunks'):
-                        # Limit RAG results for speed
+                    if self.rag_service and hasattr(self.rag_service, 'get_relevant_chunks_with_citations'):
+                        # Get relevant chunks with citation metadata
+                        rag_results, citation_metadata = self.rag_service.get_relevant_chunks_with_citations(user_message, mode="local")
+                        
+                        if rag_results and citation_metadata:
+                            rag_context = "\n\nRelevant context from documents:\n"
+                            # Process citations and build context
+                            for i, (result, citation) in enumerate(zip(rag_results[:2], citation_metadata[:2])):
+                                if hasattr(result, 'page_content'):
+                                    # Truncate long content for speed
+                                    content = result.page_content[:500] + "..." if len(result.page_content) > 500 else result.page_content
+                                    rag_context += f"[{citation['id']}] {content}\n"
+                                    if include_citations:
+                                        citations.append({
+                                            'id': citation['id'],
+                                            'text': citation['preview'],
+                                            'source': citation['file'],
+                                            'page': citation['page'],
+                                            'chunk_id': citation['chunk_id']
+                                        })
+                                elif isinstance(result, str):
+                                    content = result[:500] + "..." if len(result) > 500 else result
+                                    rag_context += f"[{i+1}] {content}\n"
+                                    if include_citations:
+                                        citations.append({
+                                            'id': i+1,
+                                            'text': content[:100] + "...",
+                                            'source': "Knowledge base",
+                                            'page': 1,
+                                            'chunk_id': f'kb_chunk_{i+1}'
+                                        })
+                    elif self.rag_service and hasattr(self.rag_service, 'get_relevant_chunks'):
+                        # Fallback to existing method
                         rag_results = self.rag_service.get_relevant_chunks(user_message, mode="local")
                         if rag_results:
                             rag_context = "\n\nRelevant context from documents:\n"
@@ -518,15 +537,32 @@ class ChatService:
                                     rag_context += f"[{i+1}] {content}\n"
                                     if include_citations:
                                         source = getattr(result, 'metadata', {}).get('source', 'Unknown source')
+                                        page_num = getattr(result, 'metadata', {}).get('page_number', 1)
+                                        chunk_id = getattr(result, 'metadata', {}).get('chunk_id', f'chunk_{i+1}')
+                                        preview = getattr(result, 'metadata', {}).get('content_preview', content[:100] + "...")
+                                        
                                         # Clean up the source path for better display
                                         if source and '/' in source:
                                             source = source.split('/')[-1]  # Get filename only
-                                        citations.append(source)
+                                        
+                                        citations.append({
+                                            'id': i+1,
+                                            'text': preview,
+                                            'source': source,
+                                            'page': page_num,
+                                            'chunk_id': chunk_id
+                                        })
                                 elif isinstance(result, str):
                                     content = result[:500] + "..." if len(result) > 500 else result
                                     rag_context += f"[{i+1}] {content}\n"
                                     if include_citations:
-                                        citations.append("Knowledge base")
+                                        citations.append({
+                                            'id': i+1,
+                                            'text': content[:100] + "...",
+                                            'source': "Knowledge base",
+                                            'page': 1,
+                                            'chunk_id': f'kb_chunk_{i+1}'
+                                        })
                 except Exception as e:
                     print(f"RAG search failed (continuing without): {e}")
                     # Continue without RAG context for speed
@@ -706,8 +742,39 @@ Provide a helpful, accurate response."""
                     # Initialize RAG service if needed (lazy loading)
                     await self._ensure_rag_initialized()
                     
-                    if self.rag_service and hasattr(self.rag_service, 'get_relevant_chunks'):
-                        # Get relevant context from RAG - limited for speed
+                    if self.rag_service and hasattr(self.rag_service, 'get_relevant_chunks_with_citations'):
+                        # Get relevant chunks with citation metadata for streaming
+                        rag_results, citation_metadata = self.rag_service.get_relevant_chunks_with_citations(chat_request.message, mode="local")
+                        
+                        if rag_results and citation_metadata:
+                            rag_context = "\n\nRelevant context from documents:\n"
+                            # Process citations and build context
+                            for i, (result, citation) in enumerate(zip(rag_results[:2], citation_metadata[:2])):
+                                if hasattr(result, 'page_content'):
+                                    # Truncate for speed
+                                    content = result.page_content[:500] + "..." if len(result.page_content) > 500 else result.page_content
+                                    rag_context += f"[{citation['id']}] {content}\n"
+                                    if include_citations:
+                                        citations.append({
+                                            'id': citation['id'],
+                                            'text': citation['preview'],
+                                            'source': citation['file'],
+                                            'page': citation['page'],
+                                            'chunk_id': citation['chunk_id']
+                                        })
+                                elif isinstance(result, str):
+                                    content = result[:500] + "..." if len(result) > 500 else result
+                                    rag_context += f"[{i+1}] {content}\n"
+                                    if include_citations:
+                                        citations.append({
+                                            'id': i+1,
+                                            'text': content[:100] + "...",
+                                            'source': "Knowledge base",
+                                            'page': 1,
+                                            'chunk_id': f'kb_chunk_{i+1}'
+                                        })
+                    elif self.rag_service and hasattr(self.rag_service, 'get_relevant_chunks'):
+                        # Fallback to existing method for streaming
                         rag_results = self.rag_service.get_relevant_chunks(chat_request.message, mode="local")
                         if rag_results:
                             rag_context = "\n\nRelevant context from documents:\n"
@@ -719,15 +786,32 @@ Provide a helpful, accurate response."""
                                     rag_context += f"[{i+1}] {content}\n"
                                     if include_citations:
                                         source = getattr(result, 'metadata', {}).get('source', 'Unknown source')
+                                        page_num = getattr(result, 'metadata', {}).get('page_number', 1)
+                                        chunk_id = getattr(result, 'metadata', {}).get('chunk_id', f'chunk_{i+1}')
+                                        preview = getattr(result, 'metadata', {}).get('content_preview', content[:100] + "...")
+                                        
                                         # Clean up the source path for better display
                                         if source and '/' in source:
                                             source = source.split('/')[-1]  # Get filename only
-                                        citations.append(source)
+                                        
+                                        citations.append({
+                                            'id': i+1,
+                                            'text': preview,
+                                            'source': source,
+                                            'page': page_num,
+                                            'chunk_id': chunk_id
+                                        })
                                 elif isinstance(result, str):
                                     content = result[:500] + "..." if len(result) > 500 else result
                                     rag_context += f"[{i+1}] {content}\n"
                                     if include_citations:
-                                        citations.append("Knowledge base")
+                                        citations.append({
+                                            'id': i+1,
+                                            'text': content[:100] + "...",
+                                            'source': "Knowledge base",
+                                            'page': 1,
+                                            'chunk_id': f'kb_chunk_{i+1}'
+                                        })
                 except Exception as e:
                     print(f"RAG search failed in streaming (continuing without): {e}")
                     # Continue without RAG context

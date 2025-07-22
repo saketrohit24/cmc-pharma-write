@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { backendApi } from '../../services/backendApi';
 import { useFiles } from '../../contexts/useFiles';
-import type { UploadedFile } from '../../contexts/FileContext';
 
 interface SessionFile {
   id: string;

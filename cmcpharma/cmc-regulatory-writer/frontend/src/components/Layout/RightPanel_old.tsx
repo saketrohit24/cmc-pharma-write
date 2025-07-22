@@ -1,22 +1,30 @@
 import React, { useState } from 'react';
-import { Plus, Square, MessageCircle, Play, Download } from 'lucide-react';
+import { Plus, Square, MessageCircle, Play, Upload /* , Download */ } from 'lucide-react';
 import { ChatBox } from '../Chat/ChatBox';
-import { ExportManager } from '../Export/ExportManager';
+// import { ExportManager } from '../Export/ExportManager';
 
 interface RightPanelProps {
   onNavigateToTemplates?: () => void;
-  currentDocument?: any;
+  // currentDocument?: any;  // Commented out unused prop
 }
 
-export const RightPanel: React.FC<RightPanelProps> = ({ onNavigateToTemplates, currentDocument }) => {
+export const RightPanel: React.FC<RightPanelProps> = ({ onNavigateToTemplates /* , currentDocument */ }) => {
   const [showChat, setShowChat] = useState(false);
-  const [showExport, setShowExport] = useState(false);
+  const [showFiles, setShowFiles] = useState(false);
+  // const [showExport, setShowExport] = useState(false);  // Commented out unused state
   
-  const handleExport = async (format: string) => {
-    console.log(`Exporting document as ${format}`);
-    // Simulate export process
-    return new Promise(resolve => setTimeout(resolve, 1000));
+  // Mock FileManager component for this old file
+  const FileManager = () => <div>File Manager (old version)</div>;
+  
+  const handleFilesChange = () => {
+    console.log('Files changed');
   };
+  
+  // const handleExport = async (format: string) => {  // Commented out unused function
+  //   console.log(`Exporting document as ${format}`);
+  //   // Simulate export process
+  //   return new Promise(resolve => setTimeout(resolve, 1000));
+  // };
 
   return (
     <aside className="right-panel">
@@ -64,7 +72,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({ onNavigateToTemplates, c
       
       {showChat && <ChatBox />}
       
-      {showFiles && <FileManager onFilesChange={handleFilesChange} />}
+      {showFiles && <FileManager />}
       
       <div className="divider"></div>
       

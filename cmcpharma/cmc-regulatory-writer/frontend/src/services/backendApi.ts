@@ -54,11 +54,20 @@ export interface FileItem {
   path: string;
 }
 
+export interface Citation {
+  id: number;
+  text: string;
+  source: string;
+  page: number;
+  chunk_id: string;
+}
+
 export interface GeneratedSection {
   id: string;
   title: string;
   content: string;
   source_count: number;
+  citations?: Citation[];
 }
 
 export interface GeneratedDocument {

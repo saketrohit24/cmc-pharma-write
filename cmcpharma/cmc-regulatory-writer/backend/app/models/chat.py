@@ -2,8 +2,18 @@
 Pydantic models for chat and AI interaction
 """
 from datetime import datetime
-from typing import List, Optional, Dict, Literal
+from typing import List, Optional, Dict, Literal, Union
 from pydantic import BaseModel, Field
+
+
+class Citation(BaseModel):
+    """Enhanced citation model with source traceability"""
+    id: int = Field(..., description="Citation number/identifier")
+    text: str = Field(..., description="Citation preview text")
+    source: str = Field(..., description="Source document filename")
+    page: int = Field(..., description="Page number in source document")
+    chunk_id: str = Field(..., description="Unique chunk identifier")
+    sourceFileId: Optional[str] = Field(None, description="Source file identifier (for compatibility)")
 
 
 class ChatMessage(BaseModel):
@@ -44,7 +54,7 @@ class ChatResponse(BaseModel):
     """Chat response model"""
     message: ChatMessage = Field(..., description="Assistant response message")
     session: ChatSession = Field(..., description="Updated session")
-    citations: Optional[List[str]] = Field(None, description="Citations used in response")
+    citations: Optional[Union[List[str], List[Citation]]] = Field(None, description="Citations used in response (legacy or enhanced)")
     tokens_used: Optional[int] = Field(None, description="Tokens used for response")
     processing_time: Optional[float] = Field(None, description="Response processing time in seconds")
 

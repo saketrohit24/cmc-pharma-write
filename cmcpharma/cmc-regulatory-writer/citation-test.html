@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Citation Hover Test</title>
+    <style>
+        .citation-marker {
+            display: inline-block;
+            color: #3b82f6;
+            font-weight: 600;
+            font-size: 11px;
+            cursor: pointer;
+            padding: 1px 2px;
+            border-radius: 2px;
+            transition: all 0.2s ease;
+            vertical-align: super;
+            line-height: 1;
+        }
+
+        .citation-marker:hover {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .citation-tooltip {
+            position: fixed;
+            background: #1f2937;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            max-width: 300px;
+            z-index: 1000;
+            font-size: 13px;
+            line-height: 1.4;
+            pointer-events: none;
+            opacity: 0;
+            animation: fadeInTooltip 0.2s forwards;
+        }
+
+        @keyframes fadeInTooltip {
+            to { opacity: 1; }
+        }
+
+        .citation-tooltip-content {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .citation-tooltip-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            border-bottom: 1px solid #374151;
+            padding-bottom: 8px;
+        }
+
+        .citation-tooltip-header strong {
+            color: #60a5fa;
+            font-weight: 600;
+            flex: 1;
+            word-break: break-word;
+        }
+
+        .citation-page {
+            color: #9ca3af;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .citation-preview {
+            color: #d1d5db;
+            font-size: 12px;
+            line-height: 1.3;
+            max-height: 60px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
+</head>
+<body>
+    <h1>Citation Hover Test</h1>
+    <p>This is some text with a citation <span class="citation-marker" data-citation-id="1">[1]</span> that should be hoverable.</p>
+    <p>Another citation <span class="citation-marker" data-citation-id="2">[2]</span> here.</p>
+
+    <script>
+        const citations = [
+            {
+                id: 1,
+                text: "This is a test citation with some preview text",
+                source: "test-document.pdf",
+                page: 42,
+                chunk_id: "test_chunk_1"
+            },
+            {
+                id: 2,
+                text: "Another test citation with different content",
+                source: "another-document.pdf", 
+                page: 15,
+                chunk_id: "test_chunk_2"
+            }
+        ];
+
+        document.querySelectorAll('.citation-marker').forEach(marker => {
+            marker.addEventListener('mouseenter', (e) => {
+                const citationId = e.target.getAttribute('data-citation-id');
+                if (citationId) {
+                    const citation = citations.find(c => c.id === parseInt(citationId));
+                    if (citation) {
+                        const tooltip = document.createElement('div');
+                        tooltip.className = 'citation-tooltip';
+                        tooltip.innerHTML = `
+                            <div class="citation-tooltip-content">
+                                <div class="citation-tooltip-header">
+                                    <strong>${citation.source}</strong>
+                                    <span class="citation-page">Page ${citation.page}</span>
+                                </div>
+                                <div class="citation-preview">${citation.text}</div>
+                                <div class="citation-chunk">ID: ${citation.chunk_id}</div>
+                            </div>
+                        `;
+                        
+                        document.body.appendChild(tooltip);
+                        
+                        const rect = e.target.getBoundingClientRect();
+                        tooltip.style.position = 'fixed';
+                        tooltip.style.left = `${rect.left}px`;
+                        tooltip.style.top = `${rect.bottom + 5}px`;
+                        tooltip.style.zIndex = '1000';
+                    }
+                }
+            });
+
+            marker.addEventListener('mouseleave', () => {
+                const tooltips = document.querySelectorAll('.citation-tooltip');
+                tooltips.forEach(tooltip => tooltip.remove());
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,5 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Edit3, Save, X, RotateCcw } from 'lucide-react';
+import React, { useState } from 'react';
 
 interface Citation {
   id: number;
@@ -7,281 +6,128 @@ interface Citation {
   source: string;
   page: number;
   sourceFileId?: string;
+  title?: string;
+  authors?: string;
+  year?: string;
+  url?: string;
 }
 
 interface EditableContentProps {
   content: string;
-  citations: Citation[];
-  sectionId: string;
-  isEdited?: boolean;
-  onSave: (sectionId: string, newContent: string, newTitle?: string) => void;
-  onRevert: (sectionId: string) => void;
+  citations?: Citation[];
+  className?: string;
 }
 
-export const EditableContent: React.FC<EditableContentProps> = ({ 
-  content, 
+export const EditableContent: React.FC<EditableContentProps> = ({
+  content,
   citations = [],
-  sectionId,
-  isEdited = false,
-  onSave,
-  onRevert
+  className = ''
 }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editContent, setEditContent] = useState(content);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
+  const [showCitation, setShowCitation] = useState<number | null>(null);
 
-  // Update edit content when props change
-  useEffect(() => {
-    if (!isEditing) {
-      setEditContent(content);
-    }
-  }, [content, isEditing]);
+  // Create a map of citation IDs to citation objects for quick lookup
+  const citationMap = citations.reduce((map, citation) => {
+    map[citation.id] = citation;
+    return map;
+  }, {} as Record<number, Citation>);
 
-  // Auto-resize textarea
-  useEffect(() => {
-    if (isEditing && textareaRef.current) {
-      const textarea = textareaRef.current;
-      textarea.style.height = 'auto';
-      textarea.style.height = `${textarea.scrollHeight}px`;
-    }
-  }, [isEditing, editContent]);
+  // Parse content and render with interactive citations
+  const renderContentWithCitations = (text: string) => {
+    // Match citation patterns like [1], [2], etc.
+    const citationRegex = /\[(\d+)\]/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
 
-  const handleEdit = () => {
-    setIsEditing(true);
-  };
-
-  const handleSave = () => {
-    const hasContentChanged = editContent.trim() !== content.trim();
-    
-    if (hasContentChanged) {
-      onSave(sectionId, editContent.trim());
-    }
-    setIsEditing(false);
-  };
-
-  const handleCancel = () => {
-    setEditContent(content);
-    setIsEditing(false);
-  };
-
-  const handleRevert = () => {
-    onRevert(sectionId);
-    setIsEditing(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>) => {
-    if (e.key === 'Escape') {
-      handleCancel();
-    } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      handleSave();
-    }
-  };
-
-  // Default citations if none provided
-  const defaultCitations: Citation[] = [
-    {
-      id: 1,
-      text: "Manufacturing process validated according to ICH Q7",
-      source: "process_validation.pdf",
-      page: 24
-    },
-    {
-      id: 2,
-      text: "ICH Q6A: Specifications: Test Procedures and Acceptance Criteria",
-      source: "ICH_Q6A_Guideline.pdf",
-      page: 1
-    }
-  ];
-
-  const citationsToUse = citations.length > 0 ? citations : defaultCitations;
-
-  const renderContentWithCitations = (textContent: string) => {
-    // Enhanced markdown processing for regulatory content
-    let processedContent = textContent;
-    
-    // Clean up excess markdown symbols and redundant formatting
-    processedContent = processedContent.replace(/\*{3,}/g, '**');
-    processedContent = processedContent.replace(/_{3,}/g, '__');
-    
-    // Remove redundant title repetition at the start of content
-    const contentLines = processedContent.split('\n');
-    if (contentLines.length > 0) {
-      const firstLine = contentLines[0].trim();
-      if (firstLine.match(/^#+\s+/) && firstLine.length > 10) {
-        contentLines.shift();
-        processedContent = contentLines.join('\n');
+    while ((match = citationRegex.exec(text)) !== null) {
+      const citationId = parseInt(match[1]);
+      const citation = citationMap[citationId];
+      
+      // Add text before the citation
+      if (match.index > lastIndex) {
+        parts.push(text.slice(lastIndex, match.index));
       }
-    }
-    
-    // Convert markdown headers to proper HTML structure
-    processedContent = processedContent.replace(/^#{4}\s+(.+)$/gm, '<h4 class="content-h4">$1</h4>');
-    processedContent = processedContent.replace(/^#{3}\s+(.+)$/gm, '<h3 class="content-h3">$1</h3>');
-    processedContent = processedContent.replace(/^#{2}\s+(.+)$/gm, '<h2 class="content-h2">$1</h2>');
-    processedContent = processedContent.replace(/^#{1}\s+(.+)$/gm, '<h1 class="content-h1">$1</h1>');
-    
-    // Convert bold and italic text
-    processedContent = processedContent.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    processedContent = processedContent.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
-    
-    // Convert bullet points and lists
-    processedContent = processedContent.replace(/^[-*•]\s+(.+)$/gm, '<li class="content-li">$1</li>');
-    processedContent = processedContent.replace(/^\d+\.\s+(.+)$/gm, '<li class="content-li-numbered">$1</li>');
-    
-    // Wrap consecutive list items in ul/ol tags
-    processedContent = processedContent.replace(/(<li class="content-li">.*?<\/li>[\s\n]*)+/gs, (match) => {
-      return `<ul class="content-ul">${match}</ul>`;
-    });
-    
-    processedContent = processedContent.replace(/(<li class="content-li-numbered">.*?<\/li>[\s\n]*)+/gs, (match) => {
-      return `<ol class="content-ol">${match.replace(/class="content-li-numbered"/g, 'class="content-li"')}</ol>`;
-    });
-    
-    // Replace citation markers with interactive components
-    processedContent = processedContent.replace(/\[(\d+)\]/g, (match, num) => {
-      const citationNum = parseInt(num);
-      const citation = citationsToUse.find(c => c.id === citationNum);
+      
+      // Add the citation as an interactive element
       if (citation) {
-        return `<span class="citation-marker" data-citation-id="${citationNum}">[${num}]</span>`;
-      }
-      return match;
-    });
-
-    // Split content into paragraphs and wrap properly
-    const paragraphs = processedContent.split('\n\n').filter(p => p.trim());
-    return paragraphs.map((paragraph, index) => {
-      const trimmed = paragraph.trim();
-      if (trimmed.startsWith('<h') || trimmed.startsWith('<ul') || trimmed.startsWith('<ol') || trimmed.startsWith('<table')) {
-        return <div key={index} dangerouslySetInnerHTML={{ __html: trimmed }} />;
-      } else {
-        return (
-          <p key={index} className="content-paragraph">
-            <span dangerouslySetInnerHTML={{ __html: trimmed }} />
-          </p>
-        );
-      }
-    });
-  };
-
-  // Handle citation clicks
-  useEffect(() => {
-    if (!isEditing && contentRef.current) {
-      const citationMarkers = contentRef.current.querySelectorAll('.citation-marker');
-      citationMarkers.forEach(marker => {
-        marker.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const citationId = (e.target as HTMLElement).getAttribute('data-citation-id');
-          if (citationId) {
-            // Handle citation click - could show popover or navigate
-            console.log('Citation clicked:', citationId);
-          }
-        });
-      });
-    }
-  }, [isEditing, content]);
-
-  return (
-    <div className="editable-content-container">
-      {/* Unified Content Area */}
-      <div 
-        className={`editable-content ${isEditing ? 'editing' : ''}`}
-        ref={contentRef}
-      >
-        {isEditing ? (
-          <div className="edit-mode">
-            <div className="edit-header">
-              <span className="edit-indicator">Editing Content</span>
-              <div className="edit-controls">
-                <button
-                  onClick={handleSave}
-                  className="edit-btn edit-btn-success"
-                  title="Save changes (Ctrl+Enter)"
-                >
-                  <Save size={16} />
-                  <span>Save</span>
-                </button>
-                <button
-                  onClick={handleCancel}
-                  className="edit-btn edit-btn-cancel"
-                  title="Cancel editing (Escape)"
-                >
-                  <X size={16} />
-                  <span>Cancel</span>
-                </button>
-                {isEdited && (
-                  <button
-                    onClick={handleRevert}
-                    className="edit-btn edit-btn-revert"
-                    title="Revert to original"
-                  >
-                    <RotateCcw size={16} />
-                    <span>Revert</span>
-                  </button>
+        parts.push(
+          <span
+            key={`citation-${citationId}-${match.index}`}
+            className="citation-marker"
+            onMouseEnter={() => setShowCitation(citationId)}
+            onMouseLeave={() => setShowCitation(null)}
+          >
+            <span className="inline-flex items-center px-1 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full cursor-help hover:bg-blue-200 transition-colors">
+              [{citationId}]
+            </span>
+            {showCitation === citationId && (
+              <div className="absolute z-50 p-3 mt-2 max-w-sm bg-white border border-gray-300 rounded-lg shadow-lg">
+                <div className="text-sm font-semibold text-gray-900 mb-1">
+                  {citation.title}
+                </div>
+                {citation.authors && (
+                  <div className="text-xs text-gray-600 mb-1">
+                    Authors: {citation.authors}
+                  </div>
+                )}
+                {citation.source && (
+                  <div className="text-xs text-gray-600 mb-1">
+                    Source: {citation.source}
+                  </div>
+                )}
+                {citation.year && (
+                  <div className="text-xs text-gray-600 mb-1">
+                    Year: {citation.year}
+                  </div>
+                )}
+                {citation.url && (
+                  <div className="text-xs">
+                    <a 
+                      href={citation.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 underline"
+                    >
+                      View Source
+                    </a>
+                  </div>
                 )}
               </div>
-            </div>
-            
-            {/* Editable Content */}
-            <div className="edit-content-area">
-              <textarea
-                ref={textareaRef}
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="edit-textarea"
-                placeholder="Enter content here..."
-                spellCheck={true}
-              />
-            </div>
-            
-            <div className="edit-footer">
-              <span className="edit-stats">
-                {editContent.length} chars, {editContent.split('\n').length} lines
-              </span>
-            </div>
-          </div>
-        ) : (
-          <div className="view-mode">
-            <div className="content-header">
-              <div className="content-title-area">
-                {isEdited && <span className="modified-text">Modified</span>}
-              </div>
-              <button
-                onClick={handleEdit}
-                className="edit-btn edit-btn-primary"
-                title="Edit this section"
-              >
-                <Edit3 size={16} />
-                <span>Edit</span>
-              </button>
-            </div>
-            <div className="content-display">
-              {renderContentWithCitations(content)}
-            </div>
-          </div>
-        )}
-      </div>
+            )}
+          </span>
+        );
+      } else {
+        // Citation not found, render as plain text
+        parts.push(match[0]);
+      }
+      
+      lastIndex = match.index + match[0].length;
+    }
+    
+    // Add remaining text
+    if (lastIndex < text.length) {
+      parts.push(text.slice(lastIndex));
+    }
+    
+    return parts;
+  };
 
-      {/* Citations Reference */}
-      {citationsToUse.length > 0 && !isEditing && (
-        <div className="citations-reference">
-          <h4 className="citations-title">References</h4>
-          <div className="citations-list">
-            {citationsToUse.map((citation) => (
-              <div key={citation.id} className="citation-item">
-                <span className="citation-number">[{citation.id}]</span>
-                <div className="citation-details">
-                  <span className="citation-source">{citation.source}</span>
-                  {citation.page && (
-                    <span className="citation-page">Page {citation.page}</span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+  // Split content into paragraphs and render each
+  const paragraphs = content.split('\n\n').filter(p => p.trim());
+  
+  return (
+    <div className={`relative ${className}`}>
+      {paragraphs.map((paragraph, index) => (
+        <div key={index} className="mb-4 leading-relaxed">
+          {paragraph.split('\n').map((line, lineIndex) => (
+            <div key={lineIndex} className="mb-2">
+              {renderContentWithCitations(line)}
+            </div>
+          ))}
         </div>
-      )}
+      ))}
     </div>
   );
 };
+
+export default EditableContent;

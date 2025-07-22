@@ -4,7 +4,7 @@ from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
 from langchain_community.document_loaders import PyPDFLoader, TextLoader, UnstructuredWordDocumentLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
-from nano_graphrag import GraphRAG, QueryParam
+# from nano_graphrag import GraphRAG, QueryParam  # Temporarily disabled
 from nano_graphrag.base import BaseKVStorage
 from ..core.config import settings
 import os

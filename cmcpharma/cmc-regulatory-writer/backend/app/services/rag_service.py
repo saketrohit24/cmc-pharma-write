@@ -6,7 +6,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
 from langchain_community.vectorstores import FAISS
 from ..core.config import settings
-from .graph_rag_service import GraphRAGService, RAGConfig
+# from .graph_rag_service import GraphRAGService, RAGConfig  # Temporarily disabled
 import os
 import asyncio
 import logging
@@ -14,22 +14,20 @@ import logging
 logger = logging.getLogger(__name__)
 
 class RAGService:
-    def __init__(self, file_paths: List[str], use_graph_rag: bool = False, graph_rag_config: Optional[RAGConfig] = None):
+    def __init__(self, file_paths: List[str], use_graph_rag: bool = False, graph_rag_config: Optional[Any] = None):
         if not settings.NVIDIA_API_KEY:
             raise ValueError("NVIDIA_API_KEY is not set in the environment.")
         
         self.file_paths = file_paths
         self.use_graph_rag = use_graph_rag
         
+        print(f"📚 Initializing RAG with {len(self.file_paths)} documents")
+        
         # Initialize GraphRAG if enabled
         if self.use_graph_rag:
-            try:
-                self.graph_rag_service = GraphRAGService(file_paths, graph_rag_config)
-                logger.info("GraphRAG service initialized successfully")
-            except Exception as e:
-                logger.warning(f"Failed to initialize GraphRAG, falling back to traditional RAG: {e}")
-                self.use_graph_rag = False
-                self.graph_rag_service = None
+            print("GraphRAG is temporarily disabled due to dependency issues")
+            self.use_graph_rag = False
+            self.graph_rag_service = None
         else:
             self.graph_rag_service = None
         
@@ -68,10 +66,12 @@ class RAGService:
                 
                 pages = loader.load()
                 
-                # Add source metadata
-                for page in pages:
+                # Add enhanced source metadata with page numbers
+                for page_idx, page in enumerate(pages):
                     page.metadata['source'] = os.path.basename(file_path)
                     page.metadata['file_path'] = file_path
+                    page.metadata['page_number'] = page.metadata.get('page', page_idx + 1)  # Use existing page or index
+                    page.metadata['document_id'] = os.path.splitext(os.path.basename(file_path))[0]
                 
                 all_pages.extend(pages)
                 print(f"Successfully loaded {len(pages)} pages from {os.path.basename(file_path)}")
@@ -85,10 +85,24 @@ class RAGService:
         
         print(f"Total documents loaded: {len(all_pages)}")
         
+        # Split documents with enhanced metadata tracking
         splitter = RecursiveCharacterTextSplitter(chunk_size=1200, chunk_overlap=200)
         split_docs = splitter.split_documents(all_pages)
         
-        print(f"Documents split into {len(split_docs)} chunks")
+        # Enrich each chunk with unique chunk ID and enhanced metadata
+        for chunk_idx, doc in enumerate(split_docs):
+            # Create unique chunk ID
+            source_file = doc.metadata.get('document_id', 'unknown')
+            page_num = doc.metadata.get('page_number', 1)
+            chunk_id = f"{source_file}_p{page_num}_c{chunk_idx}"
+            
+            # Add citation metadata
+            doc.metadata['chunk_id'] = chunk_id
+            doc.metadata['chunk_index'] = chunk_idx
+            doc.metadata['content_preview'] = doc.page_content[:100] + "..." if len(doc.page_content) > 100 else doc.page_content
+            doc.metadata['word_count'] = len(doc.page_content.split())
+        
+        print(f"Documents split into {len(split_docs)} chunks with citation metadata")
         return split_docs
 
     def _create_vector_store(self):
@@ -108,7 +122,7 @@ class RAGService:
     
     async def retrieve_relevant_content(self, query: str, file_paths: List[str] = None, top_k: int = 5, mode: str = "local") -> List[dict]:
         """
-        Retrieve relevant content for document generation.
+        Retrieve relevant content for document generation with citation metadata.
         Returns a list of dictionaries with content and source information.
         
         Args:
@@ -122,14 +136,22 @@ class RAGService:
                 # Use GraphRAG service
                 return await self.graph_rag_service.retrieve_relevant_content(query, file_paths, top_k, mode)
             elif self.retriever:
-                # Use traditional RAG
+                # Use traditional RAG with citation support
                 docs = self.retriever.get_relevant_documents(query)
                 results = []
                 for i, doc in enumerate(docs[:top_k]):
+                    citation_id = i + 1
                     results.append({
                         'content': doc.page_content,
                         'source': doc.metadata.get('source', f'Document {i+1}'),
-                        'metadata': doc.metadata
+                        'metadata': doc.metadata,
+                        'citation': {
+                            'id': citation_id,
+                            'file': doc.metadata.get('source', f'Document {i+1}'),
+                            'page': doc.metadata.get('page_number', 1),
+                            'chunk_id': doc.metadata.get('chunk_id', f'chunk_{i+1}'),
+                            'preview': doc.metadata.get('content_preview', doc.page_content[:100] + "...")
+                        }
                     })
                 return results
             else:
@@ -138,6 +160,48 @@ class RAGService:
         except Exception as e:
             print(f"Error retrieving content: {e}")
             return []
+
+    def get_relevant_chunks_with_citations(self, query: str, mode: str = "local") -> tuple[List[Document], List[dict]]:
+        """
+        Get relevant chunks and return both documents and citation metadata.
+        
+        Returns:
+            tuple: (documents, citations_metadata)
+        """
+        try:
+            if self.use_graph_rag and self.graph_rag_service:
+                docs = self.graph_rag_service.get_relevant_chunks(query, mode)
+            elif self.retriever:
+                docs = self.retriever.get_relevant_documents(query)
+            else:
+                return [], []
+            
+            # Create citation metadata
+            citations_metadata = []
+            unique_sources = set()
+            citation_id = 1
+            
+            for doc in docs:
+                # Create unique identifier for deduplication
+                source_key = f"{doc.metadata.get('source', 'unknown')}_{doc.metadata.get('chunk_id', 'unknown')}"
+                
+                if source_key not in unique_sources:
+                    unique_sources.add(source_key)
+                    citations_metadata.append({
+                        'id': citation_id,
+                        'file': doc.metadata.get('source', f'Document {citation_id}'),
+                        'page': doc.metadata.get('page_number', 1),
+                        'chunk_id': doc.metadata.get('chunk_id', f'chunk_{citation_id}'),
+                        'preview': doc.metadata.get('content_preview', doc.page_content[:100] + "..."),
+                        'content': doc.page_content
+                    })
+                    citation_id += 1
+            
+            return docs, citations_metadata
+            
+        except Exception as e:
+            print(f"Error retrieving chunks with citations: {e}")
+            return [], []
     
     async def query_with_answer(self, query: str, mode: str = "local") -> Optional[str]:
         """

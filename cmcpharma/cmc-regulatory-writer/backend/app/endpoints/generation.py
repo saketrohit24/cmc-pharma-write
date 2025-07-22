@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Body, HTTPException
-from ..models.document import GeneratedDocument, RefinementRequest
+from ..models.document import GeneratedDocument, GeneratedSection, RefinementRequest
 from ..models.template import Template
 from ..services.rag_service import RAGService
 from ..services.generation_service import GenerationService
 from ..services.file_manager import FileManager
-from ..services.graph_rag_service import RAGConfig
+# from ..services.graph_rag_service import RAGConfig  # Temporarily disabled
 from ..core.config import settings
 from datetime import datetime
 import asyncio
@@ -21,22 +21,14 @@ async def generate_document(session_id: str, template: Template = Body(...)):
         raise HTTPException(status_code=400, detail="No source files found for this session.")
 
     try:
-        # Configure GraphRAG if enabled
+        # Configure GraphRAG if enabled (temporarily disabled)
         graph_rag_config = None
         if settings.USE_GRAPH_RAG:
-            graph_rag_config = RAGConfig(
-                working_dir=settings.GRAPH_RAG_WORKING_DIR,
-                chunk_size=settings.GRAPH_RAG_CHUNK_SIZE,
-                chunk_overlap=settings.GRAPH_RAG_CHUNK_OVERLAP,
-                embedding_batch_num=settings.GRAPH_RAG_EMBEDDING_BATCH_NUM,
-                max_async=settings.GRAPH_RAG_MAX_ASYNC,
-                global_max_consider_community=settings.GRAPH_RAG_GLOBAL_MAX_CONSIDER_COMMUNITY,
-                local_search_top_k=settings.GRAPH_RAG_LOCAL_SEARCH_TOP_K
-            )
+            print("GraphRAG is temporarily disabled due to dependency issues")
         
         rag_service = RAGService(
             file_paths=file_paths, 
-            use_graph_rag=settings.USE_GRAPH_RAG,
+            use_graph_rag=False,  # Disable GraphRAG for now
             graph_rag_config=graph_rag_config
         )
         generation_service = GenerationService()
@@ -55,10 +47,32 @@ async def generate_document(session_id: str, template: Template = Body(...)):
         
         # Generate sections sequentially to ensure proper content distribution
         generated_sections = []
+        all_citations = []
+        
         for i, toc_item in enumerate(all_sections):
             print(f"Generating section {i+1}/{len(all_sections)}: {toc_item.title}")
             section = await generation_service.synthesize_section(toc_item.title, rag_service)
             generated_sections.append(section)
+            # Collect all citations
+            all_citations.extend(section.citations)
+        
+        # Automatically add References section if there are any citations
+        if all_citations:
+            # Deduplicate citations by ID
+            unique_citations = {}
+            for citation in all_citations:
+                if citation.id not in unique_citations:
+                    unique_citations[citation.id] = citation
+            
+            # Create references section with placeholder content
+            references_section = GeneratedSection(
+                title="References",
+                content="<!-- REFERENCES_PLACEHOLDER -->",
+                source_count=0,
+                citations=list(unique_citations.values())
+            )
+            generated_sections.append(references_section)
+            print(f"Added References section with {len(unique_citations)} unique citations")
         
         print(f"Generated document with {len(generated_sections)} sections")
         

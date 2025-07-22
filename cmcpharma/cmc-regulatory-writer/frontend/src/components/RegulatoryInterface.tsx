@@ -8,9 +8,9 @@ import { sampleCitations, sampleSections } from './Editor/sampleData';
 import '../styles/regulatory.css';
 
 const RegulatoryInterface: React.FC = () => {
-  const [currentView, setCurrentView] = useState<'editor' | 'files' | 'templates'>('editor');
+  const [currentView, setCurrentView] = useState<'editor' | 'files' | 'templates' | 'history' | 'connection-test'>('editor');
 
-  const handleViewChange = (view: 'editor' | 'files' | 'templates') => {
+  const handleViewChange = (view: 'editor' | 'files' | 'templates' | 'history' | 'connection-test') => {
     setCurrentView(view);
   };
   return (

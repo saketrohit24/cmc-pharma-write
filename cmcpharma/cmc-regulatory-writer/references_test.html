@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>References Section Test</title>
+</head>
+<body>
+    <h1>References Section Test</h1>
+    <p>This test simulates the GlobalReferences component behavior:</p>
+    
+    <div id="test-area"></div>
+
+    <script>
+        // Simulate the data that would be passed to GlobalReferences
+        const sampleCitations = [
+            {
+                id: 1,
+                text: 'Manufacturing process capability study',
+                source: 'Internal Report MFG-2024-001.pdf',
+                page: 15
+            },
+            {
+                id: 2, 
+                text: 'ICH Q6A Specifications: Test Procedures and Acceptance Criteria for New Drug Substances and New Drug Products',
+                source: 'ICH_Q6A_Guidelines.pdf',
+                page: 1
+            },
+            {
+                id: 3,
+                text: 'Stability data analysis',
+                source: 'Stability Report STB-2024-001.pdf',
+                page: 23
+            }
+        ];
+
+        // Test case 1: Empty usedCitationIds (the problem case)
+        console.log('=== Test Case 1: Empty usedCitationIds ===');
+        const emptyUsedIds = new Set();
+        const usedCitations1 = sampleCitations.filter(citation => emptyUsedIds.has(citation.id));
+        console.log('Citations:', sampleCitations);
+        console.log('Used citation IDs:', emptyUsedIds);
+        console.log('Filtered used citations:', usedCitations1);
+        console.log('Would show:', usedCitations1.length, 'citations');
+        
+        // Test case 2: All citations used (the fix)
+        console.log('\\n=== Test Case 2: All citations used ===');
+        const allUsedIds = new Set(sampleCitations.map(c => c.id));
+        const usedCitations2 = sampleCitations.filter(citation => allUsedIds.has(citation.id));
+        console.log('Citations:', sampleCitations);
+        console.log('Used citation IDs:', allUsedIds);
+        console.log('Filtered used citations:', usedCitations2);
+        console.log('Would show:', usedCitations2.length, 'citations');
+        
+        // Render the results
+        let html = '<h2>Test Results</h2>';
+        html += '<h3>Case 1: Empty usedCitationIds (Original Problem)</h3>';
+        html += `<p>Would show: ${usedCitations1.length} citations</p>`;
+        
+        html += '<h3>Case 2: All citations in usedCitationIds (Fixed)</h3>';
+        html += `<p>Would show: ${usedCitations2.length} citations</p>`;
+        html += '<ul>';
+        usedCitations2.forEach(citation => {
+            html += `<li>[${citation.id}] ${citation.source}, page ${citation.page}</li>`;
+        });
+        html += '</ul>';
+        
+        document.getElementById('test-area').innerHTML = html;
+    </script>
+</body>
+</html>

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citation System Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .content-container {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .citation-marker {
+            background: #007bff;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.85em;
+            cursor: pointer;
+            text-decoration: none;
+            position: relative;
+        }
+        
+        .citation-marker:hover {
+            background: #0056b3;
+        }
+        
+        .citation-tooltip {
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            max-width: 300px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .citation-tooltip-content {
+            line-height: 1.4;
+        }
+        
+        .citation-tooltip-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #555;
+            padding-bottom: 5px;
+        }
+        
+        .citation-page {
+            font-size: 12px;
+            color: #ccc;
+        }
+        
+        .citation-preview {
+            font-style: italic;
+            margin: 5px 0;
+        }
+        
+        .citation-chunk {
+            font-size: 11px;
+            color: #aaa;
+            margin-top: 5px;
+        }
+        
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        
+        .test-header {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 5px;
+        }
+        
+        .citations-list {
+            background: #f1f3f4;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+        
+        .citation-item {
+            margin: 10px 0;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Inline Citation and Source Traceability System Test</h1>
+    
+    <div class="test-section">
+        <div class="test-header">📚 Sample AI Response with Interactive Citations</div>
+        
+        <div class="content-container">
+            <p>
+                TestDrug-X is a pharmaceutical compound with the molecular formula C12H16N2O3 
+                <span class="citation-marker" data-citation-id="1">[1]</span> 
+                and molecular weight 236.27 g/mol 
+                <span class="citation-marker" data-citation-id="1">[1]</span>.
+            </p>
+            
+            <p>
+                For stability testing, the compound should be stored under long-term conditions of 25°C ± 2°C/60% RH ± 5% RH 
+                <span class="citation-marker" data-citation-id="2">[2]</span> 
+                or accelerated conditions of 40°C ± 2°C/75% RH ± 5% RH 
+                <span class="citation-marker" data-citation-id="2">[2]</span>.
+            </p>
+            
+            <p>
+                The analytical method uses HPLC with a C18 column (4.6 x 250 mm, 5 μm) 
+                <span class="citation-marker" data-citation-id="3">[3]</span> 
+                and a mobile phase of Acetonitrile:Water (60:40) 
+                <span class="citation-marker" data-citation-id="3">[3]</span> 
+                with UV detection at 254 nm 
+                <span class="citation-marker" data-citation-id="3">[3]</span>.
+            </p>
+            
+            <p>
+                The manufacturing process involves multiple steps including initial condensation reaction, cyclization, and purification by crystallization 
+                <span class="citation-marker" data-citation-id="4">[4]</span>.
+            </p>
+        </div>
+        
+        <div class="citations-list">
+            <h3>📋 Citation Sources</h3>
+            
+            <div class="citation-item">
+                <strong>[1]</strong> test_document.txt (Page 1, Chunk ID: chunk_1_1)<br>
+                <em>Preview:</em> TestDrug-X has molecular formula C12H16N2O3 and molecular weight 236.27 g/mol
+            </div>
+            
+            <div class="citation-item">
+                <strong>[2]</strong> test_document.txt (Page 1, Chunk ID: chunk_1_2)<br>
+                <em>Preview:</em> Long-term storage conditions: 25°C ± 2°C/60% RH ± 5% RH, Accelerated storage conditions: 40°C ± 2°C/75% RH ± 5% RH
+            </div>
+            
+            <div class="citation-item">
+                <strong>[3]</strong> test_document.txt (Page 1, Chunk ID: chunk_1_3)<br>
+                <em>Preview:</em> HPLC Method for Assay: Column C18, 4.6 x 250 mm, 5 μm, Mobile Phase: Acetonitrile:Water (60:40), Detection: UV at 254 nm
+            </div>
+            
+            <div class="citation-item">
+                <strong>[4]</strong> test_document.txt (Page 1, Chunk ID: chunk_1_4)<br>
+                <em>Preview:</em> The drug substance is manufactured using a multi-step synthesis process involving: Initial condensation reaction, Cyclization step, Purification by crystallization
+            </div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <div class="test-header">🎯 Test Instructions</div>
+        <ol>
+            <li><strong>Hover Test:</strong> Hover over any citation marker (e.g., [1], [2]) to see a tooltip with source details</li>
+            <li><strong>Click Test:</strong> Click on any citation marker to see detailed information in an alert</li>
+            <li><strong>Visual Test:</strong> Verify that citation markers are clearly visible and interactive</li>
+            <li><strong>Traceability Test:</strong> Confirm that each citation shows document name, page, chunk ID, and preview</li>
+        </ol>
+    </div>
+
+    <script>
+        // Citation data (would come from backend in real implementation)
+        const citations = {
+            1: {
+                id: 1,
+                source: "test_document.txt",
+                page: 1,
+                chunk_id: "chunk_1_1",
+                text: "TestDrug-X has molecular formula C12H16N2O3 and molecular weight 236.27 g/mol"
+            },
+            2: {
+                id: 2,
+                source: "test_document.txt", 
+                page: 1,
+                chunk_id: "chunk_1_2",
+                text: "Long-term storage conditions: 25°C ± 2°C/60% RH ± 5% RH, Accelerated storage conditions: 40°C ± 2°C/75% RH ± 5% RH"
+            },
+            3: {
+                id: 3,
+                source: "test_document.txt",
+                page: 1,
+                chunk_id: "chunk_1_3", 
+                text: "HPLC Method for Assay: Column C18, 4.6 x 250 mm, 5 μm, Mobile Phase: Acetonitrile:Water (60:40), Detection: UV at 254 nm"
+            },
+            4: {
+                id: 4,
+                source: "test_document.txt",
+                page: 1,
+                chunk_id: "chunk_1_4",
+                text: "The drug substance is manufactured using a multi-step synthesis process involving: Initial condensation reaction, Cyclization step, Purification by crystallization"
+            }
+        };
+        
+        // Initialize citation interactivity
+        document.addEventListener('DOMContentLoaded', function() {
+            const citationMarkers = document.querySelectorAll('.citation-marker');
+            
+            citationMarkers.forEach(marker => {
+                // Click handler
+                marker.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const citationId = e.target.getAttribute('data-citation-id');
+                    const citation = citations[citationId];
+                    
+                    if (citation) {
+                        alert(`Citation Details:
+Document: ${citation.source}
+Page: ${citation.page}
+Chunk ID: ${citation.chunk_id}
+Preview: ${citation.text}`);
+                    }
+                });
+                
+                // Hover tooltip
+                marker.addEventListener('mouseenter', (e) => {
+                    const citationId = e.target.getAttribute('data-citation-id');
+                    const citation = citations[citationId];
+                    
+                    if (citation) {
+                        // Create tooltip
+                        const tooltip = document.createElement('div');
+                        tooltip.className = 'citation-tooltip';
+                        tooltip.innerHTML = `
+                            <div class="citation-tooltip-content">
+                                <div class="citation-tooltip-header">
+                                    <strong>${citation.source}</strong>
+                                    <span class="citation-page">Page ${citation.page}</span>
+                                </div>
+                                <div class="citation-preview">${citation.text}</div>
+                                <div class="citation-chunk">ID: ${citation.chunk_id}</div>
+                            </div>
+                        `;
+                        
+                        document.body.appendChild(tooltip);
+                        
+                        // Position tooltip
+                        const rect = e.target.getBoundingClientRect();
+                        tooltip.style.position = 'fixed';
+                        tooltip.style.left = `${rect.left}px`;
+                        tooltip.style.top = `${rect.bottom + 5}px`;
+                        tooltip.style.zIndex = '1000';
+                        
+                        // Store reference for cleanup
+                        e.target.setAttribute('data-tooltip-active', 'true');
+                    }
+                });
+                
+                // Remove tooltip on mouse leave
+                marker.addEventListener('mouseleave', () => {
+                    const tooltips = document.querySelectorAll('.citation-tooltip');
+                    tooltips.forEach(tooltip => tooltip.remove());
+                    marker.removeAttribute('data-tooltip-active');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 import type { Template, TOCItem } from '../components/Templates/TemplateManagerPage';
 import { llmService } from './llmService';
-import { backendApi, type GeneratedDocument as BackendGeneratedDocument, type TemplateCreationRequest, type RefinementRequest, type Template as BackendTemplate, type TOCItem as BackendTOCItem } from './backendApi';
+import { backendApi, type GeneratedDocument as BackendGeneratedDocument, type TemplateCreationRequest, type Template as BackendTemplate, type TOCItem as BackendTOCItem, type Citation } from './backendApi';
 
 interface GeneratedSection {
   id: string;
@@ -696,15 +696,23 @@ All testing is performed by qualified personnel using validated equipment and me
       type: 'text' as const // Backend doesn't specify type, default to text
     }));
 
-    // Generate mock citations for now (backend doesn't return citations yet)
-    const citations: GeneratedCitation[] = [
-      {
-        id: 1,
-        text: "Generated based on regulatory guidelines and best practices",
-        source: "CMC Regulatory Writer AI",
-        page: 1
+    // Collect all citations from all sections and deduplicate
+    const allCitations = new Map<number, GeneratedCitation>();
+    backendDoc.sections.forEach(section => {
+      if (section.citations) {
+        section.citations.forEach((citation: Citation) => {
+          allCitations.set(citation.id, {
+            id: citation.id,
+            text: citation.text,
+            source: citation.source,
+            page: citation.page
+          });
+        });
       }
-    ];
+    });
+
+    const citations: GeneratedCitation[] = Array.from(allCitations.values()).sort((a, b) => a.id - b.id);
+    console.log('TemplateGeneration: Converted citations from backend:', citations);
 
     return {
       id: backendDoc.id,

@@ -62,7 +62,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
   // Suggest Edit Modal states
   const [showSuggestEditModal, setShowSuggestEditModal] = useState(false);
   const [suggestEditContent, setSuggestEditContent] = useState('');
-  const [suggestEditContentType, setSuggestEditContentType] = useState<'selected' | 'section'>('section');
+  const [suggestEditContentType, setSuggestEditContentType] = useState<'selected' | 'full'>('full');
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [lastSelection, setLastSelection] = useState<string>('');
 
@@ -312,12 +312,12 @@ export const RightPanel: React.FC<RightPanelProps> = ({
       console.log('⚠️ RightPanel: Selection not found in current content, falling back to section edit');
       console.log('🔄 RightPanel: Selection validation failed for:', selectionText.substring(0, 100) + '...');
       setSuggestEditContent(currentContent);
-      setSuggestEditContentType('section');
+      setSuggestEditContentType('full');
       setLastSelection('');
     } else {
       // No selection or selection not found - edit entire section
       setSuggestEditContent(currentContent);
-      setSuggestEditContentType('section');
+      setSuggestEditContentType('full');
       console.log('✅ RightPanel: Set content type to SECTION');
       setLastSelection('');
     }
@@ -347,23 +347,79 @@ export const RightPanel: React.FC<RightPanelProps> = ({
       const originalSelectedText = suggestEditContent;
       
       console.log('🔄 RightPanel: Replacing selected text');
-      console.log('🔄 RightPanel: Current content:', currentContent);
-      console.log('🔄 RightPanel: Original selected text:', originalSelectedText);
+      console.log('🔄 RightPanel: Current content length:', currentContent.length);
+      console.log('🔄 RightPanel: Original selected text length:', originalSelectedText.length);
       
-      // Use a more robust replacement method
+      // Use multiple strategies for text replacement
+      let replacementSuccess = false;
+      
+      // Strategy 1: Direct replacement
       if (currentContent.includes(originalSelectedText)) {
         finalContent = currentContent.replace(originalSelectedText, editedContent);
-        console.log('🔄 RightPanel: Final content after replacement:', finalContent);
+        replacementSuccess = true;
+        console.log('✅ Direct replacement successful');
       } else {
-        // If exact match not found, fall back to section edit
-        console.log('⚠️ RightPanel: Selected text not found, using section edit instead');
-        finalContent = editedContent;
+        // Strategy 2: Try with normalized whitespace
+        const normalizeText = (text: string) => text.replace(/\s+/g, ' ').trim();
+        const normalizedCurrent = normalizeText(currentContent);
+        const normalizedSelected = normalizeText(originalSelectedText);
+        
+        if (normalizedCurrent.includes(normalizedSelected)) {
+          // Find position in normalized text and map back to original
+          const normalizedIndex = normalizedCurrent.indexOf(normalizedSelected);
+          
+          // Find corresponding position in original text
+          let charCount = 0;
+          let originalIndex = 0;
+          
+          for (let i = 0; i < currentContent.length; i++) {
+            if (charCount === normalizedIndex) {
+              originalIndex = i;
+              break;
+            }
+            if (!currentContent[i].match(/\s/) || charCount > 0) {
+              charCount++;
+            }
+          }
+          
+          // Find end position
+          let endCharCount = 0;
+          let originalEndIndex = originalIndex;
+          
+          for (let i = originalIndex; i < currentContent.length; i++) {
+            if (endCharCount >= normalizedSelected.length) {
+              originalEndIndex = i;
+              break;
+            }
+            if (!currentContent[i].match(/\s/) || endCharCount > 0) {
+              endCharCount++;
+            }
+          }
+          
+          // Perform replacement
+          const beforeText = currentContent.substring(0, originalIndex);
+          const afterText = currentContent.substring(originalEndIndex);
+          finalContent = beforeText + editedContent + afterText;
+          replacementSuccess = true;
+          console.log('✅ Normalized replacement successful');
+        }
+      }
+      
+      // Strategy 3: If still no success, alert user instead of overwriting section
+      if (!replacementSuccess) {
+        console.error('❌ Could not find selected text in current content');
+        console.log('🔍 Looking for:', originalSelectedText.substring(0, 100) + '...');
+        console.log('🔍 In content:', currentContent.substring(0, 200) + '...');
+        
+        alert('The selected text could not be found in the current section. This may happen if the content was modified after selection. Please try selecting the text again.');
+        setShowSuggestEditModal(false);
+        return; // Don't proceed with the edit
       }
     }
     
     // Use the callback to update the section content
     if (onEditSection) {
-      console.log('🔄 RightPanel: Calling onEditSection with:', activeSection.id, finalContent);
+      console.log('🔄 RightPanel: Calling onEditSection with:', activeSection.id, 'content length:', finalContent.length);
       onEditSection(activeSection.id, finalContent);
     } else {
       console.error('❌ onEditSection callback not available');

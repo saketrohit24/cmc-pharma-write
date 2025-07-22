@@ -1,0 +1,57 @@
+Test Pharmaceutical Document for RAG Testing
+
+Introduction
+This is a test document for the CMC Regulatory Writer RAG system. This document contains sample pharmaceutical information that can be used to test the chat functionality.
+
+Drug Information
+Product Name: TestDrug-X
+Active Ingredient: TestCompound-A
+Molecular Formula: C12H16N2O3
+Molecular Weight: 236.27 g/mol
+
+Specifications
+The drug substance must meet the following specifications:
+- Assay: 98.0-102.0%
+- Related Substances: Total impurities NMT 2.0%
+- Individual impurity: NMT 0.5%
+- Water content: NMT 0.5%
+- Residual solvents: As per ICH Q3C guidelines
+
+Stability Data
+Long-term storage conditions: 25°C ± 2°C/60% RH ± 5% RH
+Accelerated storage conditions: 40°C ± 2°C/75% RH ± 5% RH
+
+Test results show the product remains stable for 24 months under long-term conditions and 6 months under accelerated conditions.
+
+Analytical Methods
+HPLC Method for Assay:
+- Column: C18, 4.6 x 250 mm, 5 μm
+- Mobile Phase: Acetonitrile:Water (60:40)
+- Flow Rate: 1.0 mL/min
+- Detection: UV at 254 nm
+- Injection Volume: 20 μL
+
+Manufacturing Process
+The drug substance is manufactured using a multi-step synthesis process involving:
+1. Initial condensation reaction
+2. Cyclization step
+3. Purification by crystallization
+4. Final drying under vacuum
+
+Quality Control
+All batches are tested according to the established release specifications before distribution. Critical quality attributes include:
+- Identity by IR spectroscopy
+- Assay by HPLC
+- Related substances by HPLC
+- Particle size distribution
+- Moisture content by Karl Fischer
+
+Regulatory Information
+This product is manufactured in compliance with ICH guidelines including:
+- ICH Q7A: Good Manufacturing Practice Guide
+- ICH Q3A: Impurities in New Drug Substances
+- ICH Q3B: Impurities in New Drug Products
+- ICH Q1A: Stability Testing Guidelines
+
+Conclusion
+TestDrug-X meets all required specifications and regulatory standards for pharmaceutical use.

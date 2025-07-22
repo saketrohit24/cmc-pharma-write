@@ -1,7 +1,7 @@
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import { SpecificationTable } from './SpecificationTable';
 import { EditableContent } from './EditableContent';
-import '../../styles/editable-content.css';
+import { GlobalReferences } from '../Citation/GlobalReferences';
 
 interface Section {
   id: string;
@@ -28,8 +28,8 @@ interface DocumentEditorProps {
     totalSections: number;
   } | null;
   activeTabId?: string;
-  editedSections?: {[key: string]: string};
-  onSectionEdit?: (sectionId: string, newContent: string) => void;
+  editedSections?: Record<string, string>;
+  onSectionEdit?: (sectionId: string, editedContent: string) => void;
   onSectionRevert?: (sectionId: string) => void;
 }
 
@@ -40,19 +40,9 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
   generationProgress = null,
   activeTabId,
   editedSections = {},
-  onSectionEdit,
-  onSectionRevert
+  // onSectionEdit, // Handled by parent components
+  // onSectionRevert // Handled by parent components
 }) => {
-  const contentRef = useRef<HTMLDivElement>(null);
-
-  // Default handlers if not provided
-  const handleSectionEdit = onSectionEdit || ((sectionId: string, newContent: string) => {
-    console.log('Section edit:', sectionId, newContent);
-  });
-
-  const handleSectionRevert = onSectionRevert || ((sectionId: string) => {
-    console.log('Section revert:', sectionId);
-  });
   const defaultSections: Section[] = [
     {
       id: '1',
@@ -132,15 +122,6 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
     availableSections: sectionsToRender.map(s => s.title)
   });
 
-  // Debug effect to track editedSections changes
-  useEffect(() => {
-    console.log('📝 editedSections state changed:', editedSections);
-    console.log('📝 Keys in editedSections:', Object.keys(editedSections));
-    if (activeSection) {
-      console.log('📝 Content for active section:', activeSection.id, ':', editedSections[activeSection.id] || 'NOT FOUND');
-    }
-  }, [editedSections, activeSection]);
-
   if (isGenerating) {
     return (
       <div className="document-editor">
@@ -207,16 +188,18 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({
         <div className="section-container">
           {activeSection.type === 'table' ? (
             <SpecificationTable />
+          ) : activeSection.title.toLowerCase().includes('references') ? (
+            <div className="section-content">
+              <GlobalReferences citations={citations} />
+            </div>
           ) : (
-            <div className="section-content" ref={contentRef}>
-              <EditableContent
-                key={`${activeSection.id}-${editedSections[activeSection.id] ? 'edited' : 'original'}`}
-                content={editedSections[activeSection.id] || activeSection.content}
-                citations={citations}
-                sectionId={activeSection.id}
-                isEdited={!!editedSections[activeSection.id]}
-                onSave={handleSectionEdit}
-                onRevert={handleSectionRevert}
+            <div className="section-content">
+              <EditableContent 
+                content={(() => {
+                  console.log('📝 DocumentEditor: Rendering content for section:', activeSection.id, 'edited:', !!editedSections[activeSection.id]);
+                  return editedSections[activeSection.id] || activeSection.content;
+                })()} 
+                citations={citations} 
               />
             </div>
           )}

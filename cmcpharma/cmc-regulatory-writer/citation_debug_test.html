@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citation Debug Test</title>
+</head>
+<body>
+    <h1>Citation Debug Test</h1>
+    <p>This test will call the backend generation API and check if citations are being returned properly.</p>
+    
+    <button id="testBtn">Test Citation Generation</button>
+    <div id="results"></div>
+
+    <script>
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>Testing...</p>';
+            
+            try {
+                // Test the backend API directly
+                const template = {
+                    id: 'test-template',
+                    name: 'Citation Test Document',
+                    description: 'Test template for citations',
+                    toc: [
+                        {
+                            id: '1',
+                            title: '3.2.S.1 General Information',
+                            level: 1,
+                            page_number: 1
+                        }
+                    ]
+                };
+                
+                const sessionId = 'session_1753138324801_6oav3lova';
+                
+                console.log('Calling backend API...');
+                const response = await fetch(`http://localhost:8001/api/generation/generate/${sessionId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(template)
+                });
+                
+                if (response.ok) {
+                    const doc = await response.json();
+                    console.log('Backend response:', doc);
+                    
+                    let html = '<h2>✅ Backend Response Success</h2>';
+                    html += `<p><strong>Title:</strong> ${doc.title}</p>`;
+                    html += `<p><strong>Sections:</strong> ${doc.sections.length}</p>`;
+                    
+                    let totalCitations = 0;
+                    doc.sections.forEach((section, i) => {
+                        const citationCount = section.citations ? section.citations.length : 0;
+                        totalCitations += citationCount;
+                        html += `<h3>Section ${i+1}: ${section.title}</h3>`;
+                        html += `<p>Citations: ${citationCount}</p>`;
+                        
+                        if (citationCount > 0) {
+                            html += '<ul>';
+                            section.citations.forEach(citation => {
+                                html += `<li>[${citation.id}] ${citation.source}, page ${citation.page}</li>`;
+                            });
+                            html += '</ul>';
+                        }
+                    });
+                    
+                    html += `<p><strong>Total Citations:</strong> ${totalCitations}</p>`;
+                    
+                    // Test frontend conversion
+                    console.log('Testing frontend conversion...');
+                    
+                    // Simulate the convertBackendDocument logic
+                    const allCitations = new Map();
+                    doc.sections.forEach(section => {
+                        if (section.citations) {
+                            section.citations.forEach(citation => {
+                                allCitations.set(citation.id, {
+                                    id: citation.id,
+                                    text: citation.text,
+                                    source: citation.source,
+                                    page: citation.page
+                                });
+                            });
+                        }
+                    });
+                    
+                    const citations = Array.from(allCitations.values()).sort((a, b) => a.id - b.id);
+                    console.log('Converted citations:', citations);
+                    
+                    html += '<h3>Frontend Conversion Result:</h3>';
+                    html += `<p>Converted Citations Count: ${citations.length}</p>`;
+                    
+                    if (citations.length > 0) {
+                        html += '<h4>Converted Citations:</h4><ul>';
+                        citations.forEach(citation => {
+                            html += `<li>[${citation.id}] ${citation.source}, page ${citation.page}</li>`;
+                        });
+                        html += '</ul>';
+                    }
+                    
+                    resultsDiv.innerHTML = html;
+                    
+                } else {
+                    const errorText = await response.text();
+                    resultsDiv.innerHTML = `<h2>❌ Backend Error</h2><p>Status: ${response.status}</p><p>Error: ${errorText}</p>`;
+                }
+                
+            } catch (error) {
+                console.error('Test error:', error);
+                resultsDiv.innerHTML = `<h2>❌ Test Error</h2><p>${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>
